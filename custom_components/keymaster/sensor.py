@@ -8,6 +8,7 @@ from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAI
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import Event, async_track_state_change_event
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -87,7 +88,7 @@ class ConnectedSensor(KeymasterTemplateEntity):
         self._pin_synched_entity = self.get_entity_id(
             BINARY_SENSOR_DOMAIN, "pin_synched"
         )
-        self._entities_to_watch = [self._active_entity, self._pin_synched_entity]
+        self._entities_to_watch = [self._pin_synched_entity]
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -109,6 +110,13 @@ class ConnectedSensor(KeymasterTemplateEntity):
         self.async_on_remove(
             async_track_state_change_event(
                 self._hass, self._entities_to_watch, state_change_handler
+            )
+        )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self._hass,
+                f"{DOMAIN}_{self._config_entry.entry_id}_active_entity",
+                state_change_handler,
             )
         )
 

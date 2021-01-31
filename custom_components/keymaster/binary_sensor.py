@@ -23,6 +23,7 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     Event,
     async_track_state_change,
@@ -151,7 +152,8 @@ class PinSynchedSensor(BinarySensorEntity, KeymasterTemplateEntity):
 
             # Handle active entity state change by setting or clearing code
             if (
-                evt.data.get("entity_id") == self._active_entity
+                evt
+                and evt.data.get("entity_id") == self._active_entity
                 and evt.data["old_state"] is not None
             ):
                 active = evt.data["new_state"].state
@@ -166,6 +168,12 @@ class PinSynchedSensor(BinarySensorEntity, KeymasterTemplateEntity):
                         automation_allowed_handler,
                         to_state=STATE_ON,
                     )
+
+                async_dispatcher_send(
+                    self._hass,
+                    f"{DOMAIN}_{self._config_entry.entry_id}_active_entity",
+                    evt,
+                )
 
         self.async_on_remove(
             async_track_state_change_event(
